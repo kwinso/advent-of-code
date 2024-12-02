@@ -1,0 +1,99 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 1
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Prep
+
+```elixir
+input = Kino.Input.textarea("Puzzle input")
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def solve(list) do
+    left = Enum.take_every(list, 2) |> Enum.sort()
+    right = Enum.take_every(tl(list), 2) |> Enum.sort()
+
+    sum_arrays(left, right)
+  end
+
+  def sum_arrays([], []), do: 0
+
+  def sum_arrays([h1 | left], [h2 | right]) do
+    abs(h1 - h2) + sum_arrays(left, right)
+  end
+end
+
+Kino.Input.read(input)
+|> String.split(["\n", " "], trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Part1.solve()
+```
+
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Alternative solutions
+
+This solution is [this one](https://blog.nemausat.com/ai-advent-of-code-2024-day-1) mixed with my own ideas
+
+```elixir
+{left, right} =
+  Kino.Input.read(input)
+  |> String.split(["\n", " "], trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(2)
+  |> Enum.map(&List.to_tuple/1)
+  |> Enum.unzip()
+
+Enum.zip(Enum.sort(left), Enum.sort(right))
+|> Enum.map(fn {a, b} -> abs(a-b) end)
+|> Enum.sum
+```
+
+## Part 2
+
+```elixir
+list =
+  Kino.Input.read(input)
+  |> String.split(["\n", " "], trim: true)
+  |> Enum.map(&String.to_integer/1)
+
+{left, right} = {Enum.take_every(list, 2), Enum.take_every(tl(list), 2)}
+
+freqs = Enum.frequencies(right)
+Enum.reduce(left, 0, fn v, acc -> acc + v * (freqs[v] || 0) end)
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Alternative soltuion
+
+So, let's try some lessons learned in the alternative solution for the first part
+
+```elixir
+# Same parsing pipeline
+{left, right} =
+  Kino.Input.read(input)
+  |> String.split(["\n", " "], trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(2)
+  |> Enum.map(&List.to_tuple/1)
+  |> Enum.unzip()
+
+freqs = Enum.frequencies(right)
+# And then the trick with map |> sum instead of reduce (just looks cleaner)
+Enum.map(left, fn a -> (freqs[a] || 0) * a end) |> Enum.sum
+```
+
+## Today I Learned!
+
+* `Enum.unzip` to convert list of tuples to multiple lists
+* Sometimes `Enum.reduce` isn't the cleanest option
