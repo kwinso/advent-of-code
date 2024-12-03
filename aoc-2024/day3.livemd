@@ -44,27 +44,24 @@ re = ~r/mul\((\d*,\d*)\)|(do\(\))|(don't\(\))/
 
 text = Kino.Input.read(input)
 
-list =
-  Regex.scan(re, text, capture: :all)
-  |> Enum.map(&Enum.at(&1, -1))
-  |> Enum.map(fn v ->
-    case v do
-      "do()" ->
-        :do
+Regex.scan(re, text, capture: :all)
+|> Enum.map(&Enum.at(&1, -1))
+|> Enum.map(fn v ->
+  case v do
+    "do()" ->
+      :do
 
-      "don't()" ->
-        :dont
+    "don't()" ->
+      :dont
 
-      v ->
-        v
-        |> String.split(",")
-        |> Enum.map(&String.to_integer/1)
-        |> Enum.reduce(&*/2)
-    end
-  end)
-
-Enum.chunk_while(
-  list,
+    v ->
+      v
+      |> String.split(",")
+      |> Enum.map(&String.to_integer/1)
+      |> Enum.reduce(&*/2)
+  end
+end)
+|> Enum.chunk_while(
   {:do, []},
   fn v, {action, acc} ->
     cond do
