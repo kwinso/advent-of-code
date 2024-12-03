@@ -1,0 +1,84 @@
+# Day 2
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Solution.Part1 do
+  def safe_report?(type, list) when type == :inc or type == :dec do
+    Enum.all?(list, &safe?(type, &1))
+  end
+
+  defp safe?(:inc, v), do: v >= 1 and v <= 3
+  defp safe?(:dec, v), do: v <= -1 and v >= -3
+
+  def report_type([a, b | _] = list) do
+    cond do
+      a > 0 and b > 0 -> {:inc, list}
+      true -> {:dec, list}
+    end
+  end
+end
+
+Kino.Input.read(input)
+|> String.split("\n", trim: true)
+|> Enum.map(fn v -> String.split(v, " ", trim: true) |> Enum.map(&String.to_integer/1) end)
+|> Enum.map(fn v ->
+  v |> Enum.chunk_every(2, 1, :discard) |> Enum.map(fn [a, b] -> b - a end)
+end)
+|> Enum.map(&Solution.Part1.report_type/1)
+|> Enum.count(fn {type, list} -> Solution.Part1.safe_report?(type, list) end)
+```
+
+## Part 2
+
+```elixir
+defmodule Solution.Part2 do
+  def safe?(list) do
+    diffs = list |> Enum.chunk_every(2, 1, :discard) |> Enum.map(fn [a, b] -> b - a end) 
+    safe = Enum.all?(diffs, &safe?(:inc, &1)) or Enum.all?(diffs, &safe?(:dec, &1))
+    safe
+  end
+
+  def safe_with_dumpener?(list) do
+    safe = safe?(list)
+
+    # Just go and try to remove one number and see if it helps
+    safe_removed = 0..(length(list) - 1)
+    |> Enum.any?(fn index ->
+      list
+      |> List.delete_at(index)
+      |> safe?()
+    end)
+
+    safe or safe_removed
+  end
+
+  # Checks if the element is safe based on the fact if the sequence increases or decreses
+  defp safe?(:inc, v), do: v >= 1 and v <= 3
+  defp safe?(:dec, v), do: v <= -1 and v >= -3
+end
+
+Kino.Input.read(input)
+|> String.split("\n", trim: true)
+|> Enum.map(fn v -> String.split(v, " ", trim: true) |> Enum.map(&String.to_integer/1) end)
+|> Enum.count(&Solution.Part2.safe_with_dumpener?/1)
+```
+
+## Today I Learned
+
+* Sometimes it's easier to get the easiest solution out. Like just dumb-way checking by removing each number and see if it helps. I spent too much time trying to make it work with some fancy solution...
+* `List.delete_at/2`

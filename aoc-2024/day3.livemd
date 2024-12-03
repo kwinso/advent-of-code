@@ -1,0 +1,90 @@
+# Day 3
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Input
+
+```elixir
+  input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1
+
+```elixir
+re = ~r/mul\((\d*,\d*)\)/
+
+text = Kino.Input.read(input)
+
+Regex.scan(re, text, capture: :all)
+|> Enum.map(&Enum.at(&1, 1))
+|> Enum.map(fn v ->
+  v
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.reduce(&*/2)
+end)
+|> Enum.sum()
+```
+
+## Part 2 - Dos and Don'ts
+
+```elixir
+  input = Kino.Input.textarea("Puzzle Input")
+```
+
+Decided to go fancy and try using `Enum.chunk_while/4` function that allowed me to
+easily track what is the current mode.
+
+```elixir
+re = ~r/mul\((\d*,\d*)\)|(do\(\))|(don't\(\))/
+
+text = Kino.Input.read(input)
+
+list =
+  Regex.scan(re, text, capture: :all)
+  |> Enum.map(&Enum.at(&1, -1))
+  |> Enum.map(fn v ->
+    case v do
+      "do()" ->
+        :do
+
+      "don't()" ->
+        :dont
+
+      v ->
+        v
+        |> String.split(",")
+        |> Enum.map(&String.to_integer/1)
+        |> Enum.reduce(&*/2)
+    end
+  end)
+
+Enum.chunk_while(
+  list,
+  {:do, []},
+  fn v, {action, acc} ->
+    cond do
+      # If the mode changes, just dump the current accumulator
+      v == :dont or v == :do -> {:cont, acc, {v, []}}
+      # Ignore values if we're in don't mode
+      action == :dont -> {:cont, {:dont, acc}}
+      # Otherwise add it to the chunk
+      action == :do -> {:cont, {:do, [v | acc]}}
+    end
+  end,
+  # Last chunk will be added depending on the mode that we hit last
+  fn {action, last} = acc -> if action == :dont, do: {:cont, acc}, else: {:cont, last, acc} end
+)
+# sum chunks first
+|> Enum.map(&Enum.sum/1)
+|> Enum.sum()
+```
+
+## Today I Learned
+
+* `Enum.chunk_while/4` is fun
+* `Regex.scan`
