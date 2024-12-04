@@ -1,0 +1,105 @@
+# Day 4
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1 + Part 2
+
+Today I decided to be a little bit fancy. So the idea for this one is to go over each character in the text and text all possible direction to find a which words these directions give, and them sum the amount of words for each char and direction.
+
+Optimizations: for the first part, I have only checked 4 directions (right, bottom and 2 bottom diagonals) as the other combinations will be covered by checking for reversed words.
+Second part actually came out to be easier in my opinion, as it requires to check only 2 directions (but we need to make sure there are exactly 2 words we need)
+
+Initially I solveed the first part without callbacks and passing cords directly, but the second part was begging to just add possiblity to add custom check logic for the `valid_word_count/3` function, which I did.
+
+```elixir
+defmodule Checker do
+  @doc """
+  Assembles the list of words based on the list of coordinate tuples passed as the
+  first argument.
+  After words are assembled, it counts amount of words that turn in to true if
+  passed to the `check_fn`
+  """
+  def valid_word_count(map, cords, check_fn) do
+    cords
+    |> Enum.map(&cords_to_word(&1, map))
+    |> Enum.count(check_fn)
+  end
+
+  defp cords_to_word(cords, map) do
+    cords
+    |> Enum.reduce("", fn v, acc -> acc <> (map[v] || "") end)
+  end
+end
+
+lines =
+  Kino.Input.read(input)
+  |> String.split()
+
+charmap =
+  for {line, y} <- lines |> Enum.with_index(),
+      {char, x} <- line |> String.graphemes() |> Enum.with_index(),
+      into: %{},
+      do: {{x, y}, char}
+
+# Just the coordinates
+cordmap = charmap |> Map.keys()
+```
+
+```elixir
+# Part 1
+cordmap
+|> Enum.map(fn {x, y} ->
+  Checker.valid_word_count(
+    charmap,
+    [
+      # XMAS right (or SAMX if from left)
+      [{x, y}, {x + 1, y}, {x + 2, y}, {x + 3, y}],
+      # XMAS / SAMX vertical
+      [{x, y}, {x, y + 1}, {x, y + 2}, {x, y + 3}],
+      # Diagonals
+      [{x, y}, {x + 1, y + 1}, {x + 2, y + 2}, {x + 3, y + 3}],
+      [{x, y}, {x - 1, y + 1}, {x - 2, y + 2}, {x - 3, y + 3}]
+    ],
+    fn v -> v == "XMAS" or v == "SAMX" end
+  )
+end)
+|> Enum.sum()
+```
+
+```elixir
+# Part 2
+cordmap
+|> Enum.map(fn {x, y} ->
+  mas_count =
+    Checker.valid_word_count(
+      charmap,
+      [
+        # Top left to bottom right
+        [{x, y}, {x + 1, y + 1}, {x + 2, y + 2}],
+        # Top right to bottom left
+        [{x + 2, y}, {x + 1, y + 1}, {x, y + 2}]
+      ],
+      fn v -> v == "MAS" or v == "SAM" end
+    )
+
+  if mas_count == 2, do: 1, else: 0
+end)
+|> Enum.sum()
+```
+
+## Today I Learned
+
+* Some of the cool `Map` module functions like `Map.to_list` and `Map.keys/1`
+* Some of that brain-melting stuff of figuring out offsets for diagonals :)
+* `Enum.with_index`
+* `for` comperhension magic
